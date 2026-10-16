@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Memory Number Game</title>
+    <style>
+      :root {
+        --bg: #0b0d10;
+        --panel: #11161b;
+        --card: #171d24;
+        --card-active: #dfe7ee;
+        --text: #f4f7fa;
+        --muted: #9aa5b1;
+        --border: #2b3138;
+        --button: #e9edf2;
+        --button-hover: #dfe7ee;
+        --button-text: #11161b;
+        --danger: #ff7d7d;
+        --success: #aee3bf;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Inter, "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .app {
+        position: relative;
+        width: min(92vw, 760px);
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 24px 22px 20px;
+      }
+
+      h1 {
+        margin: 0 0 18px;
+        text-align: left;
+        font-size: clamp(1.7rem, 2vw, 2.2rem);
+        font-weight: 600;
+        letter-spacing: -0.04em;
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        align-items: end;
+        margin-bottom: 10px;
+      }
+
+      .scoreboard {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        z-index: 2;
+      }
+
+      .score-box {
+        min-width: 56px;
+        text-align: center;
+        background: #11181d;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 4px 6px;
+      }
+
+      .score-box .label {
+        display: block;
+        color: var(--muted);
+        font-size: 0.55rem;
+        margin-bottom: 2px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .score-box .value {
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 0.7rem;
+        min-width: 0;
+      }
+
+      input[type="number"],
+      input[type="text"] {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 7px 8px;
+        background: #0d1117;
+        color: var(--text);
+        font-size: 0.8rem;
+        outline: none;
+      }
+
+      input[type="number"] {
+        appearance: textfield;
+        width: 4rem;
+      }
+
+      input[type="text"] {
+        width: 10rem;
+        margin: 0 auto;
+        display: block;
+      }
+
+      input:focus {
+        border-color: rgba(255, 255, 255, 0.35);
+      }
+
+      button {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        cursor: pointer;
+        font-size: 0.96rem;
+        font-weight: 600;
+        background: var(--button);
+        color: var(--button-text);
+        transition: background 0.15s ease;
+      }
+
+      button:hover:not(:disabled) {
+        background: var(--button-hover);
+      }
+
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      .board {
+        display: grid;
+        gap: 4px;
+        justify-content: center;
+        align-items: center;
+        margin: 20px auto 18px;
+        width: fit-content;
+        max-width: 430px;
+        grid-template-columns: repeat(var(--cards-per-row, 4), minmax(0, 1fr));
+      }
+
+      .card {
+        width: 3.2rem;
+        height: 3.2rem;
+        display: grid;
+        place-items: center;
+        justify-self: center;
+        align-self: center;
+        border-radius: 7px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-size: clamp(1.1rem, 1.9vw, 1.6rem);
+        font-weight: 700;
+        text-align: center;
+        transition: transform 0.1s ease, background 0.1s ease, border-color 0.1s ease;
+      }
+
+      .card.active {
+        background: var(--card-active);
+        color: #11161b;
+        border-color: rgba(255, 255, 255, 0.08);
+        transform: translateY(-1px);
+      }
+
+      .answer-panel {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 10px;
+      }
+
+      .answer-panel .field {
+        align-items: center;
+        width: 100%;
+      }
+
+      .status {
+        min-height: 24px;
+        margin: 12px 0 0;
+        text-align: center;
+        font-size: 0.95rem;
+        color: var(--muted);
+      }
+
+      .status.success {
+        color: var(--success);
+        font-weight: 600;
+      }
+
+      .status.error {
+        color: var(--danger);
+        font-weight: 600;
+      }
+
+      @media (max-width: 520px) {
+        .app {
+          padding: 22px 16px 20px;
+        }
+
+        .board {
+          grid-template-columns: repeat(auto-fit, minmax(54px, 1fr));
+          gap: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <h1>Memory Number Game</h1>
+
+      <div class="controls">
+        <label class="field">
+          Number of cards
+          <input id="cardCount" type="number" inputmode="numeric" pattern="[0-9]*" value="4" />
+        </label>
+
+        <label class="field">
+          Cards per row
+          <input id="cardsPerRow" type="number" inputmode="numeric" pattern="[0-9]*" value="4" />
+        </label>
+
+        <button id="startBtn" class="primary" type="button">Next sequence</button>
+      </div>
+
+      <div class="scoreboard" aria-live="polite">
+        <div class="score-box">
+          <span class="label">Score</span>
+          <span id="scoreValue" class="value">0</span>
+        </div>
+        <div class="score-box">
+          <span class="label">Streak</span>
+          <span id="streakValue" class="value">0</span>
+        </div>
+        <div class="score-box">
+          <span class="label">Best</span>
+          <span id="bestValue" class="value">0</span>
+        </div>
+      </div>
+
+      <div id="gameBoard" class="board" aria-live="polite"></div>
+
+      <div class="answer-panel">
+        <label class="field">
+          <input id="answerInput" type="text" inputmode="numeric" placeholder="Press Enter to submit" disabled />
+        </label>
+      </div>
+
+      <p id="status" class="status" aria-live="polite"></p>
+    </main>
+
+    <script>
+      const cardCountInput = document.getElementById('cardCount');
+      const cardsPerRowInput = document.getElementById('cardsPerRow');
+      const startBtn = document.getElementById('startBtn');
+      const answerInput = document.getElementById('answerInput');
+      const statusEl = document.getElementById('status');
+      const board = document.getElementById('gameBoard');
+      const scoreValue = document.getElementById('scoreValue');
+      const streakValue = document.getElementById('streakValue');
+      const bestValue = document.getElementById('bestValue');
+
+      let cards = [];
+      let sequence = [];
+      let isShowingSequence = false;
+      let awaitingUserAction = false;
+      let score = 0;
+      let streak = 0;
+      let bestStreak = 0;
+
+      window.memoryGame = {
+        get sequence() {
+          return [...sequence];
+        },
+        get scoreValue() {
+          return score;
+        },
+        get streakValue() {
+          return streak;
+        },
+        get bestStreakValue() {
+          return bestStreak;
+        }
+      };
+
+      function updateScoreboard() {
+        scoreValue.textContent = score;
+        streakValue.textContent = streak;
+        bestValue.textContent = bestStreak;
+      }
+
+      function setStatus(message, type = '') {
+        statusEl.textContent = message;
+        statusEl.className = 'status';
+        if (type) statusEl.classList.add(type);
+      }
+
+      function createCards(count) {
+        board.innerHTML = '';
+        cards = [];
+
+        for (let i = 0; i < count; i += 1) {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.textContent = '';
+          card.setAttribute('aria-label', `Card ${i + 1}`);
+          board.appendChild(card);
+          cards.push(card);
+        }
+      }
+
+      function generateSequence(length) {
+        return Array.from({ length }, () => Math.floor(Math.random() * 10));
+      }
+
+      function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      async function flashSequence() {
+        isShowingSequence = true;
+        answerInput.disabled = true;
+        startBtn.disabled = true;
+
+        for (let i = 0; i < cards.length; i += 1) {
+          cards[i].classList.remove('active');
+          cards[i].textContent = '';
+        }
+
+        for (let i = 0; i < sequence.length; i += 1) {
+          const value = sequence[i];
+
+          for (let j = 0; j < cards.length; j += 1) {
+            const isCurrentCard = j === i;
+            cards[j].classList.toggle('active', isCurrentCard);
+            cards[j].textContent = isCurrentCard ? value : '';
+          }
+
+          await sleep(600);
+
+          for (let j = 0; j < cards.length; j += 1) {
+            cards[j].classList.remove('active');
+            cards[j].textContent = '';
+          }
+
+          await sleep(320);
+        }
+
+        isShowingSequence = false;
+        answerInput.disabled = false;
+        startBtn.disabled = false;
+        answerInput.value = '';
+        answerInput.focus();
+        // setStatus('Type the full number string you just saw.');
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function syncBoardColumns() {
+        const rawTotal = cardCountInput.value.trim();
+        const rawRows = cardsPerRowInput.value.trim();
+
+        const parsedTotal = rawTotal === '' ? 4 : Number.parseInt(rawTotal, 10);
+        const parsedRows = rawRows === '' ? 4 : Number.parseInt(rawRows, 10);
+
+        const totalCards = Number.isFinite(parsedTotal) && parsedTotal > 0
+          ? clamp(parsedTotal, 3, 12)
+          : 4;
+
+        const maxPerRow = Number.isFinite(parsedRows) && parsedRows > 0
+          ? clamp(parsedRows, 1, Math.min(totalCards, 12))
+          : clamp(4, 1, Math.min(totalCards, 12));
+
+        if (rawTotal !== '') {
+          cardCountInput.value = String(totalCards);
+        }
+
+        if (rawRows !== '') {
+          cardsPerRowInput.value = String(maxPerRow);
+        }
+
+        cardsPerRowInput.max = '12';
+        board.style.setProperty('--cards-per-row', String(maxPerRow));
+        board.style.gridTemplateColumns = `repeat(${maxPerRow}, minmax(0, 1fr))`;
+        createCards(totalCards);
+      }
+
+      function startRound() {
+        awaitingUserAction = false;
+        const count = clamp(Number.parseInt(cardCountInput.value, 10) || 4, 3, 12);
+        const maxPerRow = clamp(Number.parseInt(cardsPerRowInput.value, 10) || 4, 1, Math.min(count, 12));
+
+        cardCountInput.value = String(count);
+        cardsPerRowInput.value = String(maxPerRow);
+        board.style.setProperty('--cards-per-row', String(maxPerRow));
+        board.style.gridTemplateColumns = `repeat(${maxPerRow}, minmax(0, 1fr))`;
+        createCards(count);
+        sequence = generateSequence(count);
+        flashSequence();
+      }
+
+      function submitAnswer() {
+        if (isShowingSequence) {
+          setStatus('Wait for full sequence to show.', 'error');
+          return;
+        }
+
+        const answer = answerInput.value.replace(/\s+/g, '').trim();
+
+        if (!answer) {
+          setStatus('Enter the number string before submitting.', 'error');
+          return;
+        }
+
+        const expected = sequence.join('');
+
+        if (answer === expected) {
+          score += 1;
+          streak += 1;
+          bestStreak = Math.max(bestStreak, streak);
+          setStatus(`Correct! The sequence was ${expected}.`, 'success');
+          updateScoreboard();
+
+          answerInput.value = '';
+          answerInput.disabled = true;
+
+          setTimeout(() => {
+            if (!isShowingSequence) {
+              startRound();
+            }
+          }, 900);
+          return;
+        }
+
+        streak = 0;
+        setStatus(`Not quite. The correct sequence was ${expected}.`, 'error');
+        updateScoreboard();
+
+        for (let i = 0; i < cards.length; i += 1) {
+          cards[i].classList.add('active');
+          cards[i].textContent = sequence[i] ?? '';
+        }
+
+        answerInput.value = '';
+        answerInput.disabled = true;
+        awaitingUserAction = true;
+        startBtn.disabled = false;
+        startBtn.focus();
+      }
+
+      startBtn.addEventListener('click', startRound);
+      answerInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+
+          if (isShowingSequence) {
+            return;
+          }
+
+          if (answerInput.disabled && !startBtn.disabled) {
+            startRound();
+            return;
+          }
+
+          submitAnswer();
+        }
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') {
+          return;
+        }
+
+        const activeElement = document.activeElement;
+        const isTypingInInput = activeElement === answerInput || activeElement === cardCountInput;
+
+        if (isShowingSequence || isTypingInInput || awaitingUserAction) {
+          return;
+        }
+
+        event.preventDefault();
+        startRound();
+      });
+
+      cardCountInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          startRound();
+        }
+      });
+
+      cardCountInput.addEventListener('input', () => {
+        syncBoardColumns();
+      });
+
+      cardsPerRowInput.addEventListener('input', () => {
+        syncBoardColumns();
+      });
+
+      syncBoardColumns();
+      createCards(Number(cardCountInput.value) || 4);
+      updateScoreboard();
+    //   setStatus('Press “Start round” to begin.');
+    </script>
+  </body>
+</html>
