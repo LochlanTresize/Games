@@ -43,8 +43,16 @@
         padding: 24px 22px 20px;
       }
 
+      .app-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
       h1 {
-        margin: 0 0 18px;
+        margin: 0;
         text-align: left;
         font-size: clamp(1.7rem, 2vw, 2.2rem);
         font-weight: 600;
@@ -61,13 +69,12 @@
       }
 
       .scoreboard {
-        position: absolute;
-        top: 18px;
-        right: 18px;
+        position: static;
         display: flex;
         gap: 8px;
         justify-content: flex-end;
         z-index: 2;
+        margin-left: auto;
       }
 
       .score-box {
@@ -230,7 +237,24 @@
   </head>
   <body>
     <main class="app">
-      <h1>Memory Number Game</h1>
+      <header class="app-header">
+        <h1>Sequence Game</h1>
+
+        <div class="scoreboard" aria-live="polite">
+          <div class="score-box">
+            <span class="label">Score</span>
+            <span id="scoreValue" class="value">0</span>
+          </div>
+          <div class="score-box">
+            <span class="label">Streak</span>
+            <span id="streakValue" class="value">0</span>
+          </div>
+          <div class="score-box">
+            <span class="label">Best</span>
+            <span id="bestValue" class="value">0</span>
+          </div>
+        </div>
+      </header>
 
       <div class="controls">
         <label class="field">
@@ -244,21 +268,6 @@
         </label>
 
         <button id="startBtn" class="primary" type="button">Next sequence</button>
-      </div>
-
-      <div class="scoreboard" aria-live="polite">
-        <div class="score-box">
-          <span class="label">Score</span>
-          <span id="scoreValue" class="value">0</span>
-        </div>
-        <div class="score-box">
-          <span class="label">Streak</span>
-          <span id="streakValue" class="value">0</span>
-        </div>
-        <div class="score-box">
-          <span class="label">Best</span>
-          <span id="bestValue" class="value">0</span>
-        </div>
       </div>
 
       <div id="gameBoard" class="board" aria-live="polite"></div>
@@ -382,19 +391,25 @@
       }
 
       function syncBoardColumns() {
+        const MIN_TOTAL_CARDS = 1;
+        const MAX_TOTAL_CARDS = 20;
+        const MIN_CARDS_PER_ROW = 1;
+        const DEFAULT_TOTAL_CARDS = 4;
+        const DEFAULT_CARDS_PER_ROW = 4;
+
         const rawTotal = cardCountInput.value.trim();
         const rawRows = cardsPerRowInput.value.trim();
 
-        const parsedTotal = rawTotal === '' ? 4 : Number.parseInt(rawTotal, 10);
-        const parsedRows = rawRows === '' ? 4 : Number.parseInt(rawRows, 10);
+        const parsedTotal = rawTotal === '' ? DEFAULT_TOTAL_CARDS : Number.parseInt(rawTotal, 10);
+        const parsedRows = rawRows === '' ? DEFAULT_CARDS_PER_ROW : Number.parseInt(rawRows, 10);
 
         const totalCards = Number.isFinite(parsedTotal) && parsedTotal > 0
-          ? clamp(parsedTotal, 3, 12)
-          : 4;
+          ? clamp(parsedTotal, MIN_TOTAL_CARDS, MAX_TOTAL_CARDS)
+          : DEFAULT_TOTAL_CARDS;
 
         const maxPerRow = Number.isFinite(parsedRows) && parsedRows > 0
-          ? clamp(parsedRows, 1, Math.min(totalCards, 12))
-          : clamp(4, 1, Math.min(totalCards, 12));
+          ? clamp(parsedRows, MIN_CARDS_PER_ROW, Math.min(totalCards, MAX_TOTAL_CARDS))
+          : clamp(DEFAULT_CARDS_PER_ROW, MIN_CARDS_PER_ROW, Math.min(totalCards, MAX_TOTAL_CARDS));
 
         if (rawTotal !== '') {
           cardCountInput.value = String(totalCards);
@@ -404,7 +419,7 @@
           cardsPerRowInput.value = String(maxPerRow);
         }
 
-        cardsPerRowInput.max = '12';
+        cardsPerRowInput.max = String(MAX_TOTAL_CARDS);
         board.style.setProperty('--cards-per-row', String(maxPerRow));
         board.style.gridTemplateColumns = `repeat(${maxPerRow}, minmax(0, 1fr))`;
         createCards(totalCards);
@@ -412,6 +427,7 @@
 
       function startRound() {
         awaitingUserAction = false;
+        setStatus('');
         const count = clamp(Number.parseInt(cardCountInput.value, 10) || 4, 3, 12);
         const maxPerRow = clamp(Number.parseInt(cardsPerRowInput.value, 10) || 4, 1, Math.min(count, 12));
 
